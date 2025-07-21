@@ -1,0 +1,158 @@
+
+<!--<!DOCTYPE html>-->
+<!--{% load static %}-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <title>Blog List</title>-->
+<!--</head>-->
+<!--<body>-->
+<!--<h1>Blog Posts</h1>-->
+<!--<a href="{% url 'blog:blog_create' %}">Create New Post</a> <br>-->
+<!--<a href="{% url 'logout' %}">logout</a>-->
+
+
+<!--{% for post in posts %}-->
+<!--    <h2><a href="{% url 'blog:blog_detail' post.pk %}">{{ post.title }}</a></h2>-->
+
+<!--    {% if post.image %}-->
+<!--        <img src="{{ post.image.url }}" alt="Post Image" width="300">-->
+<!--    {% endif %}-->
+
+<!--    <p>{{ post.content|truncatewords:20 }}</p>-->
+
+<!--     <br>-->
+<!--        <a href="{% url 'blog:blog_detail' post.pk %}#comments">-->
+<!--            <button>💬 View Comments</button>-->
+<!--        </a>-->
+
+<!--{% endfor %}-->
+
+
+
+<!--</body>-->
+<!--</html>-->
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blog List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        a {
+            text-decoration: none;
+            color: #007bff;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .post {
+            background: #fff;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .post h2 {
+            margin-top: 0;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Blog Posts</h1>
+
+    <nav style="background-color: #333; padding: 10px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; color: white;">
+        <div>
+            <a href="{% url 'home' %}" style="color: white; margin-right: 15px; text-decoration: none;">Home</a>
+            <a href="{% url 'blog:blog_list' %}" style="color: white; margin-right: 15px; text-decoration: none;">Blog</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'user_view' %}" style="color: white; margin-right: 15px; text-decoration: none;">Profile</a>
+                <a href="{% url 'logout' %}" style="color: white; text-decoration: none;">Logout</a>
+            {% else %}
+                <a href="{% url 'login' %}" style="color: white; margin-right: 15px; text-decoration: none;">Login</a>
+                <a href="{% url 'register' %}" style="color: white; text-decoration: none;">Register</a>
+            {% endif %}
+        </div>
+        {% if user.is_authenticated and user.profile_picture %}
+            <img src="{{ user.profile_picture.url }}" alt="Profile" width="40" height="40" style="border-radius: 50%;">
+        {% endif %}
+    </div>
+</nav>
+
+    {% for post in posts %}
+    <div class="post">
+        <h2><a href="{% url 'blog:blog_detail' post.pk %}">{{ post.title }}</a></h2>
+
+        {% if post.image %}
+            <img src="{{ post.image.url }}" alt="Post Image">
+        {% endif %}
+
+        <p>{{ post.content|truncatewords:20 }}</p>
+
+        <a href="{% url 'blog:view_comment' post.pk %}">
+
+            <button> View Comments</button>
+        </a>
+    </div>
+    {% endfor %}
+
+</body>
+</html>
+
+
+
+
+
+
+

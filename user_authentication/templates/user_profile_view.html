@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <title>User Profile</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f5f5;
+            padding: 20px;
+            text-align: center;
+        }
+        .profile-card {
+            max-width: 400px;
+            background: white;
+            margin: auto;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .profile-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 20px;
+        }
+        .profile-card p {
+            margin: 8px 0;
+            color: black;
+        }
+        a {
+            display: inline-block;
+            margin: 10px;
+            text-decoration: none;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+<a href="{% url 'blog:blog_list' %}">← Back to Blog List</a>
+<div class="profile-card">
+    {% if user_view.profile_picture %}
+        <img src="{{ user_view.profile_picture.url }}" alt="Profile Picture" class="profile-img">
+    {% else %}
+        <img src="https://via.placeholder.com/120" class="profile-img" alt="No Picture">
+    {% endif %}
+
+    <h3>{{ user_view.first_name }} {{ user_view.last_name }}</h3>
+    <p><strong>Username:</strong> {{ user_view.username }}</p>
+    <p><strong>Email:</strong> {{ user_view.email }}</p>
+    <p><strong>Phone:</strong> {{ user_view.phone_number }}</p>
+
+
+    <a href="{% url 'forgot_password' %}"> Forgot Password</a>
+
+    <a href="{% url 'user_edit' %}">Edit Profile</a>
+     <a href="{% url 'logout' %}">logout</a>
+
+</div>
+
+</body>
+</html>
+
+
+
