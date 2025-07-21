@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import BlogPost, Comment
 from .forms import BlogPostForm, CommentForm
+from django.db.models import Q
 
 def blog_list(request):
     posts = BlogPost.objects.all().order_by('-created_at')
@@ -95,3 +96,15 @@ def view_comment(request, pk):
         'comments': comments,
         'form': form
     })
+
+def search(request):
+    query = request.GET.get('q')
+    results = []
+
+    if query:
+        results = BlogPost.objects.filter(
+            Q(title__icontains=query) |
+            Q(content__icontains=query)
+        )
+
+    return render(request, 'search_results.html', {'results': results, 'query': query})
