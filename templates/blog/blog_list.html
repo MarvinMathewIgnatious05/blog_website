@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Explore Stories & Articles - BlogVerse{% endblock %}
+
+{% block content %}
+<style>
+    .feed-header {
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .feed-title {
+        font-size: 2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #1e293b, #475569);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .feed-subtitle {
+        color: var(--muted);
+        font-size: 0.95rem;
+    }
+
+    .posts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+        gap: 1.75rem;
+    }
+
+    .post-card {
+        background: #ffffff;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .post-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .post-thumb-wrapper {
+        position: relative;
+        width: 100%;
+        height: 200px;
+        background: #f1f5f9;
+        overflow: hidden;
+    }
+
+    .post-thumb {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+
+    .post-card:hover .post-thumb {
+        transform: scale(1.05);
+    }
+
+    .post-body {
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .post-author-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .author-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .author-avatar-placeholder {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .author-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .author-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--dark);
+    }
+
+    .post-date {
+        font-size: 0.75rem;
+        color: var(--muted);
+    }
+
+    .post-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+    }
+
+    .post-title a {
+        color: var(--dark);
+    }
+
+    .post-title a:hover {
+        color: var(--primary);
+    }
+
+    .post-excerpt {
+        color: var(--slate);
+        font-size: 0.92rem;
+        margin-bottom: 1.25rem;
+        flex: 1;
+    }
+
+    .post-footer-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 0.75rem;
+        margin-top: auto;
+    }
+
+    .comments-count-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+        font-weight: 500;
+        padding: 0.4rem 0.75rem;
+        border-radius: 9999px;
+        background: #f8fafc;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .comments-count-btn:hover {
+        background: var(--primary-light);
+        color: var(--primary);
+    }
+
+    .read-more-btn {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--primary);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: #ffffff;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+    }
+
+    .empty-state i {
+        font-size: 3.5rem;
+        color: var(--muted);
+        margin-bottom: 1rem;
+    }
+</style>
+
+<div class="feed-header">
+    <div>
+        <h1 class="feed-title">Recent Stories</h1>
+        <p class="feed-subtitle">Discover insights, news, and perspectives from our community.</p>
+    </div>
+    {% if user.is_authenticated %}
+        <a href="{% url 'blog:blog_create' %}" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i> Create Post
+        </a>
+    {% endif %}
+</div>
+
+{% if posts %}
+<div class="posts-grid">
+    {% for post in posts %}
+    <article class="post-card">
+        {% if post.image %}
+        <div class="post-thumb-wrapper">
+            <a href="{% url 'blog:blog_detail' post.pk %}">
+                <img src="{{ post.image.url }}" alt="{{ post.title }}" class="post-thumb">
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="post-body">
+            <div class="post-author-meta">
+                {% if post.author.profile_picture %}
+                    <img src="{{ post.author.profile_picture.url }}" alt="{{ post.author.username }}" class="author-avatar">
+                {% else %}
+                    <div class="author-avatar-placeholder">{{ post.author.username|first|upper }}</div>
+                {% endif %}
+                <div class="author-info">
+                    <span class="author-name">{{ post.author.get_full_name|default:post.author.username }}</span>
+                    <span class="post-date"><i class="fa-regular fa-clock"></i> {{ post.created_at|date:"M d, Y" }}</span>
+                </div>
+                {% if post.category %}
+                    <span style="margin-left: auto; background: var(--primary-light); color: var(--primary); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; padding: 0.15rem 0.5rem; border-radius: 9999px;">
+                        {{ post.category.name }}
+                    </span>
+                {% endif %}
+                {% if post.status == 'draft' %}
+                    <span style="background: #fef3c7; color: #b45309; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; padding: 0.15rem 0.5rem; border-radius: 9999px;">
+                        Draft
+                    </span>
+                {% endif %}
+            </div>
+
+            <h2 class="post-title">
+                <a href="{% url 'blog:blog_detail' post.pk %}">{{ post.title }}</a>
+            </h2>
+
+            <p class="post-excerpt">
+                {% if post.excerpt %}
+                    {{ post.excerpt|truncatewords:25 }}
+                {% else %}
+                    {{ post.content|striptags|truncatewords:22 }}
+                {% endif %}
+            </p>
+
+            <div class="post-footer-actions">
+                <a href="{% url 'blog:view_comment' post.pk %}" class="comments-count-btn">
+                    <i class="fa-regular fa-comment-dots"></i> {{ post.comments.count }} Comments
+                </a>
+                <a href="{% url 'blog:blog_detail' post.pk %}" class="read-more-btn">
+                    Read Story <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fa-solid fa-folder-open"></i>
+    <h2>No blog posts yet</h2>
+    <p>Be the first author to share a story with the world!</p>
+    {% if user.is_authenticated %}
+        <a href="{% url 'blog:blog_create' %}" class="btn btn-primary" style="margin-top: 1rem;">
+            <i class="fa-solid fa-pen"></i> Write First Post
+        </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

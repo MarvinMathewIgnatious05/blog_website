@@ -1,0 +1,952 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title|default:"Post Editor" }} - BlogVerse{% endblock %}
+
+{% block extra_head %}
+<!-- Quill Rich Text Editor CSS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .editor-container {
+        max-width: 1100px;
+        margin: 0 auto 3rem;
+    }
+
+    .editor-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #ffffff;
+        padding: 1.25rem 2rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.75rem;
+        position: sticky;
+        top: 70px;
+        z-index: 900;
+    }
+
+    .editor-header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .back-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--light-bg);
+        color: var(--slate);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .back-btn:hover {
+        background: #e2e8f0;
+        color: var(--dark);
+    }
+
+    .editor-header-title h2 {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .autosave-status {
+        font-size: 0.82rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 0.2rem;
+    }
+
+    .autosave-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+    }
+
+    .editor-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    /* Grid Layout */
+    .editor-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 1.75rem;
+    }
+
+    @media (max-width: 992px) {
+        .editor-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .editor-card {
+        background: #ffffff;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        padding: 2rem;
+        margin-bottom: 1.75rem;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        color: var(--dark);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.75rem;
+    }
+
+    .field-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .field-group label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 600;
+        font-size: 0.92rem;
+        margin-bottom: 0.5rem;
+        color: var(--dark);
+    }
+
+    .char-counter {
+        font-size: 0.78rem;
+        color: var(--muted);
+        font-weight: 400;
+    }
+
+    .form-control-title {
+        font-size: 1.6rem !important;
+        font-weight: 700 !important;
+        padding: 0.9rem 1.1rem !important;
+        border-radius: var(--radius-sm) !important;
+        border: 2px solid var(--border-color) !important;
+    }
+
+    .form-control-title:focus {
+        border-color: var(--primary) !important;
+    }
+
+    .slug-preview {
+        display: flex;
+        align-items: center;
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-top: 0.4rem;
+        gap: 0.3rem;
+        flex-wrap: wrap;
+    }
+
+    .slug-badge {
+        background: #f1f5f9;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        font-family: monospace;
+        color: var(--primary);
+    }
+
+    /* Drag and Drop Zone */
+    .upload-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: var(--radius-md);
+        padding: 2rem 1.5rem;
+        text-align: center;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all 0.25 ease;
+        position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: var(--primary);
+        background: #f0f3ff;
+    }
+
+    .upload-zone i {
+        font-size: 2.5rem;
+        color: var(--primary);
+        margin-bottom: 0.75rem;
+    }
+
+    .file-input-hidden {
+        display: none;
+    }
+
+    .image-preview-wrapper {
+        position: relative;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        margin-top: 1rem;
+        border: 1px solid var(--border-color);
+        display: none;
+    }
+
+    .image-preview-wrapper img {
+        width: 100%;
+        max-height: 320px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .image-preview-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: #ffffff;
+    }
+
+    .image-details {
+        font-size: 0.85rem;
+        color: var(--slate);
+    }
+
+    .image-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Quill Editor Customizations */
+    .ql-toolbar.ql-snow {
+        border-top-left-radius: var(--radius-sm);
+        border-top-right-radius: var(--radius-sm);
+        border-color: var(--border-color);
+        background: #f8fafc;
+    }
+
+    .ql-container.ql-snow {
+        border-bottom-left-radius: var(--radius-sm);
+        border-bottom-right-radius: var(--radius-sm);
+        border-color: var(--border-color);
+        min-height: 320px;
+        font-size: 1rem;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .ql-editor {
+        min-height: 320px;
+    }
+
+    /* Tags Input Chips */
+    .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.6rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background: #ffffff;
+        min-height: 48px;
+        align-items: center;
+    }
+
+    .tag-chip {
+        background: #e0e7ff;
+        color: #4338ca;
+        padding: 0.3rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .tag-chip .remove-tag {
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: #4338ca;
+    }
+
+    .tag-chip .remove-tag:hover {
+        color: #1e1b4b;
+    }
+
+    .tag-input-field {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        flex: 1;
+        min-width: 120px;
+        padding: 0.2rem 0.4rem;
+        font-size: 0.9rem;
+    }
+
+    /* Visibility Radio Cards */
+    .radio-card-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .radio-card {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        transition: all 0.2s ease;
+    }
+
+    .radio-card:hover {
+        border-color: var(--primary);
+    }
+
+    .radio-card.active {
+        border-color: var(--primary);
+        background: #f0f3ff;
+    }
+
+    .radio-card input {
+        margin: 0;
+    }
+
+    /* Live Preview Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(6px);
+        z-index: 2000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .modal-content {
+        background: #ffffff;
+        border-radius: var(--radius-md);
+        max-width: 850px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 2.5rem;
+        position: relative;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 1.25rem;
+        right: 1.5rem;
+        font-size: 1.5rem;
+        cursor: pointer;
+        background: #f1f5f9;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+    }
+
+    .preview-cover-img {
+        width: 100%;
+        max-height: 380px;
+        object-fit: cover;
+        border-radius: var(--radius-md);
+        margin: 1.5rem 0;
+    }
+
+    .preview-category-badge {
+        display: inline-block;
+        background: var(--primary-light);
+        color: var(--primary);
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        padding: 0.3rem 0.8rem;
+        border-radius: 9999px;
+        margin-bottom: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="editor-container">
+    <form method="post" enctype="multipart/form-data" id="blog-post-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" id="form-action-input" value="publish">
+        <input type="hidden" name="remove_cover_image" id="remove-cover-image-input" value="false">
+        <input type="hidden" name="tags_data" id="tags-data-hidden" value="{{ form.tags_input.value|default:'' }}">
+
+        <!-- Top Header Navigation Bar -->
+        <div class="editor-header">
+            <div class="editor-header-left">
+                <a href="{% url 'blog:blog_list' %}" class="back-btn" title="Back to posts">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <div class="editor-header-title">
+                    <h2>{{ title }}</h2>
+                    <div class="autosave-status">
+                        <span class="autosave-indicator" id="status-dot"></span>
+                        <span id="autosave-text">Draft ready</span>
+                    </div>
+                </div>
+            </div>
+            <div class="editor-actions">
+                <button type="button" class="btn btn-secondary" onclick="openPreviewModal()">
+                    <i class="fa-solid fa-eye"></i> Preview
+                </button>
+                <button type="submit" onclick="setAction('draft')" class="btn btn-secondary">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Draft
+                </button>
+                {% if is_edit and blog.status == 'published' %}
+                    <button type="submit" onclick="setAction('unpublish')" class="btn btn-secondary" style="color: #d97706;">
+                        <i class="fa-solid fa-eye-slash"></i> Unpublish
+                    </button>
+                    <button type="submit" onclick="setAction('save')" class="btn btn-primary">
+                        <i class="fa-solid fa-check"></i> Save Changes
+                    </button>
+                {% else %}
+                    <button type="submit" onclick="setAction('publish')" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane"></i> Publish Post
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Main Form Grid -->
+        <div class="editor-grid">
+            <!-- Left Main Column -->
+            <div class="editor-left-col">
+                <div class="editor-card">
+                    <!-- Title Input -->
+                    <div class="field-group">
+                        <label for="post-title-input">
+                            <span>Post Title <span style="color: #ef4444;">*</span></span>
+                            <span class="char-counter" id="title-counter">0 / 255</span>
+                        </label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div style="color: #ef4444; font-size: 0.85rem; margin-top: 0.3rem;">{{ form.title.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Slug Input -->
+                    <div class="field-group">
+                        <label for="post-slug-input">
+                            <span>URL Slug</span>
+                            <span id="slug-status-text" style="font-size: 0.78rem;"></span>
+                        </label>
+                        {{ form.slug }}
+                        <div class="slug-preview">
+                            <span>Permalink:</span>
+                            <span class="slug-badge" id="slug-url-preview">/blog/post/<span id="slug-text-val">...</span>/</span>
+                        </div>
+                        {% if form.slug.errors %}
+                            <div style="color: #ef4444; font-size: 0.85rem; margin-top: 0.3rem;">{{ form.slug.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Excerpt Input -->
+                    <div class="field-group">
+                        <label for="post-excerpt-input">
+                            <span>Short Excerpt</span>
+                            <span class="char-counter" id="excerpt-counter">0 / 300</span>
+                        </label>
+                        {{ form.excerpt }}
+                        <p style="font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem;">
+                            <i class="fa-solid fa-circle-info"></i> Used in article cards, search engine results, and social previews.
+                        </p>
+                        {% if form.excerpt.errors %}
+                            <div style="color: #ef4444; font-size: 0.85rem; margin-top: 0.3rem;">{{ form.excerpt.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Cover Image Drag-and-Drop Zone -->
+                    <div class="field-group">
+                        <label>Cover Image</label>
+                        {{ form.image }}
+                        
+                        <div class="upload-zone" id="upload-dropzone" onclick="document.getElementById('cover-image-input').click();">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p style="font-weight: 600; margin-bottom: 0.25rem;">Click to upload or drag & drop cover image</p>
+                            <p style="font-size: 0.82rem; color: var(--muted);">Supports WEBP, PNG, JPG or GIF (Max 5MB)</p>
+                        </div>
+
+                        <!-- Image Preview Box -->
+                        <div class="image-preview-wrapper" id="preview-box" {% if blog and blog.image %}style="display: block;"{% endif %}>
+                            <img src="{% if blog and blog.image %}{{ blog.image.url }}{% endif %}" id="image-preview-element" alt="Cover Preview">
+                            <div class="image-preview-info">
+                                <div class="image-details" id="image-file-info">
+                                    {% if blog and blog.image %}Current Cover Image{% else %}Selected Image{% endif %}
+                                </div>
+                                <div class="image-actions">
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="document.getElementById('cover-image-input').click();">
+                                        <i class="fa-solid fa-rotate"></i> Replace
+                                    </button>
+                                    <button type="button" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="removeCoverImage()">
+                                        <i class="fa-solid fa-trash-can"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% if form.image.errors %}
+                            <div style="color: #ef4444; font-size: 0.85rem; margin-top: 0.3rem;">{{ form.image.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Rich Text Editor Section -->
+                    <div class="field-group">
+                        <label for="editor">
+                            <span>Story Content <span style="color: #ef4444;">*</span></span>
+                            <span class="char-counter" id="word-counter">0 words</span>
+                        </label>
+                        
+                        <!-- Quill Editor Canvas -->
+                        <div id="quill-editor">{% if form.content.value %}{{ form.content.value|safe }}{% endif %}</div>
+                        
+                        <!-- Hidden textarea to pass content to Django form -->
+                        {{ form.content }}
+
+                        {% if form.content.errors %}
+                            <div style="color: #ef4444; font-size: 0.85rem; margin-top: 0.3rem;">{{ form.content.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar Column -->
+            <div class="editor-right-col">
+                <!-- Publishing & Settings Card -->
+                <div class="editor-card">
+                    <div class="card-title">
+                        <i class="fa-solid fa-sliders" style="color: var(--primary);"></i> Post Settings
+                    </div>
+
+                    <!-- Post Status -->
+                    <div class="field-group">
+                        <label for="post-status-select">Status</label>
+                        {{ form.status }}
+                    </div>
+
+                    <!-- Visibility Options -->
+                    <div class="field-group">
+                        <label>Visibility</label>
+                        <div class="radio-card-group">
+                            <label class="radio-card {% if form.visibility.value == 'public' or not form.visibility.value %}active{% endif %}" id="vis-card-public">
+                                <input type="radio" name="visibility" value="public" {% if form.visibility.value == 'public' or not form.visibility.value %}checked{% endif %} onchange="updateVisCard()">
+                                <span><i class="fa-solid fa-globe"></i> Public</span>
+                            </label>
+                            <label class="radio-card {% if form.visibility.value == 'private' %}active{% endif %}" id="vis-card-private">
+                                <input type="radio" name="visibility" value="private" {% if form.visibility.value == 'private' %}checked{% endif %} onchange="updateVisCard()">
+                                <span><i class="fa-solid fa-lock"></i> Private</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Organization Card (Category & Tags) -->
+                <div class="editor-card">
+                    <div class="card-title">
+                        <i class="fa-solid fa-folder-tree" style="color: var(--secondary);"></i> Organization
+                    </div>
+
+                    <!-- Category Field -->
+                    <div class="field-group">
+                        <label for="post-category-select">Category</label>
+                        {{ form.category }}
+                    </div>
+
+                    <!-- Tags Field -->
+                    <div class="field-group">
+                        <label>Tags</label>
+                        <div class="tags-container" id="tags-chips-wrapper">
+                            <!-- Tag chips rendered by JS -->
+                            <input type="text" class="tag-input-field" id="tag-input-text" placeholder="Type & press Enter...">
+                        </div>
+                        <p style="font-size: 0.78rem; color: var(--muted); margin-top: 0.3rem;">Press Enter or comma to add tags.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Live Preview Modal -->
+<div class="modal-overlay" id="preview-modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+        <div id="preview-category-badge" class="preview-category-badge">General</div>
+        <h1 id="preview-title" style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;">Untitled Post</h1>
+        
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; color: var(--muted); font-size: 0.9rem;">
+            <span><i class="fa-solid fa-user"></i> {{ user.username }}</span> &bull;
+            <span><i class="fa-solid fa-calendar-day"></i> {% now "F j, Y" %}</span>
+        </div>
+
+        <img src="" id="modal-cover-preview" class="preview-cover-img" style="display: none;" alt="Cover">
+
+        <div id="preview-body" style="font-size: 1.05rem; line-height: 1.8; color: var(--slate); margin-bottom: 2rem;"></div>
+
+        <div id="preview-tags-wrapper" style="display: flex; gap: 0.5rem; flex-wrap: wrap; border-top: 1px solid var(--border-color); padding-top: 1.25rem;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Quill Rich Text Editor JS -->
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
+<script>
+    // 1. Initialize Quill Rich Text Editor
+    const quill = new Quill('#quill-editor', {
+        theme: 'snow',
+        placeholder: 'Write your story here with rich text formatting, lists, quotes, images, code...',
+        modules: {
+            toolbar: {
+                container: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['link', 'image'],
+                    ['clean']
+                ],
+                handlers: {
+                    image: imageHandler
+                }
+            }
+        }
+    });
+
+    const hiddenTextarea = document.getElementById('post-content-textarea');
+
+    // Sync Quill HTML content to Django hidden textarea
+    quill.on('text-change', function() {
+        hiddenTextarea.value = quill.root.innerHTML;
+        updateWordCount();
+        triggerAutoSave();
+    });
+
+    // Handle Custom Inline Image Upload inside Editor
+    function imageHandler() {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                {% if blog %}formData.append('post_id', '{{ blog.pk }}');{% endif %}
+
+                try {
+                    const response = await fetch("{% url 'blog:upload_content_image' %}", {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        const range = quill.getSelection(true);
+                        quill.insertEmbed(range.index, 'image', data.url);
+                    } else {
+                        alert(data.error || 'Failed to upload inline image.');
+                    }
+                } catch (err) {
+                    alert('Error uploading image to server.');
+                }
+            }
+        };
+    }
+
+    // 2. Character Counters & Word Counter
+    const titleInput = document.getElementById('post-title-input');
+    const titleCounter = document.getElementById('title-counter');
+    const slugInput = document.getElementById('post-slug-input');
+    const slugPreview = document.getElementById('slug-text-val');
+    const excerptInput = document.getElementById('post-excerpt-input');
+    const excerptCounter = document.getElementById('excerpt-counter');
+    let autoSlug = {% if is_edit %}false{% else %}true{% endif %};
+
+    if (titleInput) {
+        titleInput.addEventListener('input', () => {
+            titleCounter.textContent = `${titleInput.value.length} / 255`;
+            if (autoSlug) {
+                const generatedSlug = slugify(titleInput.value);
+                slugInput.value = generatedSlug;
+                slugPreview.textContent = generatedSlug || '...';
+            }
+        });
+    }
+
+    if (slugInput) {
+        slugInput.addEventListener('input', () => {
+            autoSlug = false;
+            const formatted = slugify(slugInput.value);
+            slugPreview.textContent = formatted || '...';
+            checkSlugUniqueness(formatted);
+        });
+    }
+
+    if (excerptInput) {
+        excerptInput.addEventListener('input', () => {
+            excerptCounter.textContent = `${excerptInput.value.length} / 300`;
+        });
+        excerptCounter.textContent = `${excerptInput.value.length} / 300`;
+    }
+
+    function slugify(text) {
+        return text.toString().toLowerCase().trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-');
+    }
+
+    async function checkSlugUniqueness(slug) {
+        if (!slug) return;
+        const statusSpan = document.getElementById('slug-status-text');
+        try {
+            const res = await fetch(`{% url 'blog:check_slug_unique' %}?slug=${slug}{% if blog %}&post_id={{ blog.pk }}{% endif %}`);
+            const data = await res.json();
+            if (data.is_unique) {
+                statusSpan.innerHTML = '<span style="color: #10b981;"><i class="fa-solid fa-check"></i> Available</span>';
+            } else {
+                statusSpan.innerHTML = '<span style="color: #ef4444;"><i class="fa-solid fa-circle-xmark"></i> Already taken</span>';
+            }
+        } catch(e) {}
+    }
+
+    function updateWordCount() {
+        const text = quill.getText().trim();
+        const words = text ? text.split(/\s+/).length : 0;
+        document.getElementById('word-counter').textContent = `${words} words`;
+    }
+
+    // 3. Cover Image Drag and Drop & Preview Handler
+    const dropzone = document.getElementById('upload-dropzone');
+    const imageInput = document.getElementById('cover-image-input');
+    const previewBox = document.getElementById('preview-box');
+    const previewImg = document.getElementById('image-preview-element');
+    const imageInfo = document.getElementById('image-file-info');
+    const removeImageInput = document.getElementById('remove-cover-image-input');
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+        }, false);
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            imageInput.files = files;
+            handleImagePreview(files[0]);
+        }
+    });
+
+    imageInput.addEventListener('change', () => {
+        if (imageInput.files.length > 0) {
+            handleImagePreview(imageInput.files[0]);
+        }
+    });
+
+    function handleImagePreview(file) {
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size exceeds 5MB limit. Please select a smaller image.');
+            imageInput.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImg.src = e.target.result;
+            previewBox.style.display = 'block';
+            imageInfo.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            removeImageInput.value = 'false';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function removeCoverImage() {
+        imageInput.value = '';
+        previewImg.src = '';
+        previewBox.style.display = 'none';
+        removeImageInput.value = 'true';
+    }
+
+    // 4. Tags Chip Manager
+    let tagsList = [];
+    const tagsWrapper = document.getElementById('tags-chips-wrapper');
+    const tagTextInput = document.getElementById('tag-input-text');
+    const tagsHiddenInput = document.getElementById('tags-data-hidden');
+
+    {% if current_tags %}
+        tagsList = [{% for t in current_tags %}"{{ t }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    {% endif %}
+    renderTagChips();
+
+    tagTextInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            const val = tagTextInput.value.trim().replace(/,/g, '');
+            if (val && !tagsList.includes(val)) {
+                tagsList.push(val);
+                renderTagChips();
+                tagTextInput.value = '';
+            }
+        }
+    });
+
+    function renderTagChips() {
+        // Clear existing chips
+        const existingChips = tagsWrapper.querySelectorAll('.tag-chip');
+        existingChips.forEach(chip => chip.remove());
+
+        tagsList.forEach((tag, idx) => {
+            const chip = document.createElement('div');
+            chip.className = 'tag-chip';
+            chip.innerHTML = `${tag} <span class="remove-tag" onclick="removeTag(${idx})">&times;</span>`;
+            tagsWrapper.insertBefore(chip, tagTextInput);
+        });
+
+        tagsHiddenInput.value = tagsList.join(',');
+    }
+
+    function removeTag(index) {
+        tagsList.splice(index, 1);
+        renderTagChips();
+    }
+
+    // 5. Visibility Card Update
+    function updateVisCard() {
+        document.querySelectorAll('.radio-card').forEach(card => card.classList.remove('active'));
+        const selected = document.querySelector('input[name="visibility"]:checked');
+        if (selected && selected.value === 'public') {
+            document.getElementById('vis-card-public').classList.add('active');
+        } else {
+            document.getElementById('vis-card-private').classList.add('active');
+        }
+    }
+
+    // 6. Action Switcher
+    function setAction(act) {
+        document.getElementById('form-action-input').value = act;
+    }
+
+    // 7. Preview Modal Handler
+    function openPreviewModal() {
+        const modal = document.getElementById('preview-modal');
+        document.getElementById('preview-title').textContent = titleInput.value || 'Untitled Post';
+        document.getElementById('preview-body').innerHTML = quill.root.innerHTML || '<p><em>No content written yet.</em></p>';
+        
+        const catSelect = document.getElementById('post-category-select');
+        const catText = catSelect.options[catSelect.selectedIndex] ? catSelect.options[catSelect.selectedIndex].text : 'General';
+        document.getElementById('preview-category-badge').textContent = catText;
+
+        const modalImg = document.getElementById('modal-cover-preview');
+        if (previewImg.src && previewBox.style.display !== 'none') {
+            modalImg.src = previewImg.src;
+            modalImg.style.display = 'block';
+        } else {
+            modalImg.style.display = 'none';
+        }
+
+        const tagsContainer = document.getElementById('preview-tags-wrapper');
+        tagsContainer.innerHTML = '';
+        tagsList.forEach(tag => {
+            const tSpan = document.createElement('span');
+            tSpan.className = 'tag-chip';
+            tSpan.textContent = `# ${tag}`;
+            tagsContainer.appendChild(tSpan);
+        });
+
+        modal.style.display = 'flex';
+    }
+
+    function closePreviewModal() {
+        document.getElementById('preview-modal').style.display = 'none';
+    }
+
+    // 8. LocalStorage Auto-Save System (Unique per user ID)
+    const DRAFT_KEY = 'blogverse_draft_user_{{ user.pk }}_' + ({% if blog %}'{{ blog.pk }}'{% else %}'new'{% endif %});
+
+    function triggerAutoSave() {
+        const draftData = {
+            userId: '{{ user.pk }}',
+            title: titleInput.value,
+            slug: slugInput.value,
+            excerpt: excerptInput.value,
+            content: quill.root.innerHTML,
+            savedAt: new Date().toLocaleTimeString()
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+        document.getElementById('autosave-text').textContent = `Auto-saved at ${draftData.savedAt}`;
+        document.getElementById('status-dot').style.background = '#10b981';
+    }
+
+    // Clear local draft when form is submitted
+    document.getElementById('blog-post-form').addEventListener('submit', () => {
+        localStorage.removeItem(DRAFT_KEY);
+    });
+
+    // Restore draft if available for new posts belonging strictly to this user
+    {% if not is_edit %}
+    window.addEventListener('load', () => {
+        // Clean up legacy non-user-specific drafts if present
+        localStorage.removeItem('blogverse_draft_new');
+
+        const saved = localStorage.getItem(DRAFT_KEY);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                if (data.userId === '{{ user.pk }}' && data.title && !titleInput.value) {
+                    titleInput.value = data.title;
+                    slugInput.value = data.slug;
+                    excerptInput.value = data.excerpt;
+                    quill.root.innerHTML = data.content;
+                    hiddenTextarea.value = data.content;
+                    titleCounter.textContent = `${data.title.length} / 255`;
+                    document.getElementById('autosave-text').textContent = `Restored draft from ${data.savedAt}`;
+                }
+            } catch(e) {}
+        }
+    });
+    {% endif %}
+
+    // Initial setups
+    if (slugInput.value) {
+        slugPreview.textContent = slugInput.value;
+    }
+    updateWordCount();
+</script>
+{% endblock %}

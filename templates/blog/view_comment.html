@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Comments: {{ post.title }} - BlogVerse{% endblock %}
+
+{% block content %}
+<style>
+    .comments-card {
+        background: #ffffff;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        padding: 2.5rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+    }
+
+    .comment-item {
+        background: #f8fafc;
+        border-radius: var(--radius-sm);
+        padding: 1rem 1.25rem;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+    }
+
+    .comment-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .comment-user {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+    }
+
+    .comment-user-img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+</style>
+
+<a href="{% url 'blog:blog_detail' post.pk %}" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Back to Post</a>
+
+<div class="comments-card">
+    <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">Comments for "{{ post.title }}"</h1>
+    <p style="color: var(--muted); margin-bottom: 2rem;">Join the conversation below.</p>
+
+    {% if user.is_authenticated %}
+    <form method="post" style="margin-bottom: 2rem;">
+        {% csrf_token %}
+        <div style="margin-bottom: 1rem;">
+            {{ form.content }}
+        </div>
+        <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-paper-plane"></i> Submit Comment
+        </button>
+    </form>
+    {% endif %}
+
+    <div class="comment-list">
+        {% for comment in comments %}
+        <div class="comment-item">
+            <div class="comment-header">
+                <div class="comment-user">
+                    {% if comment.user.profile_picture %}
+                        <img src="{{ comment.user.profile_picture.url }}" alt="{{ comment.user.username }}" class="comment-user-img">
+                    {% else %}
+                        <div class="avatar-placeholder" style="width: 32px; height: 32px; font-size: 0.85rem;">{{ comment.user.username|first|upper }}</div>
+                    {% endif %}
+                    <span>{{ comment.user.get_full_name|default:comment.user.username }}</span>
+                </div>
+                <span style="font-size: 0.8rem; color: var(--muted);">{{ comment.created_at|date:"M d, Y H:i" }}</span>
+            </div>
+            <p style="color: var(--slate);">{{ comment.content }}</p>
+        </div>
+        {% empty %}
+        <p style="color: var(--muted); text-align: center; padding: 2rem 0;">No comments recorded yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

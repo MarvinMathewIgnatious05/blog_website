@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ user_view.username }} Profile - BlogVerse{% endblock %}
+
+{% block content %}
+<style>
+    .profile-card {
+        background: #ffffff;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        padding: 2.5rem;
+        max-width: 650px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .profile-avatar-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid var(--primary);
+        box-shadow: var(--shadow-md);
+        margin-bottom: 1.5rem;
+    }
+
+    .profile-avatar-placeholder {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 800;
+        margin: 0 auto 1.5rem;
+        box-shadow: var(--shadow-md);
+    }
+
+    .profile-name {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+    }
+
+    .profile-username {
+        color: var(--primary);
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-list {
+        background: #f8fafc;
+        border-radius: var(--radius-sm);
+        border: 1px solid #e2e8f0;
+        padding: 1.25rem;
+        text-align: left;
+        margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.95rem;
+        color: var(--slate);
+    }
+
+    .info-item i {
+        color: var(--primary);
+        width: 20px;
+    }
+</style>
+
+<div class="profile-card">
+    {% if user_view.profile_picture %}
+        <img src="{{ user_view.profile_picture.url }}" alt="{{ user_view.username }}" class="profile-avatar-large">
+    {% else %}
+        <div class="profile-avatar-placeholder">{{ user_view.username|first|upper }}</div>
+    {% endif %}
+
+    <h1 class="profile-name">{{ user_view.get_full_name|default:user_view.username }}</h1>
+    <p class="profile-username">@{{ user_view.username }}</p>
+
+    <div class="info-list">
+        <div class="info-item">
+            <i class="fa-solid fa-envelope"></i>
+            <span><strong>Email:</strong> {{ user_view.email|default:"Not provided" }}</span>
+        </div>
+        <div class="info-item">
+            <i class="fa-solid fa-phone"></i>
+            <span><strong>Phone:</strong> {{ user_view.phone_number|default:"Not provided" }}</span>
+        </div>
+        <div class="info-item">
+            <i class="fa-solid fa-calendar-check"></i>
+            <span><strong>Joined:</strong> {{ user_view.date_joined|date:"F d, Y" }}</span>
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 1rem;">
+        <a href="{% url 'user_edit' %}" class="btn btn-primary">
+            <i class="fa-solid fa-user-pen"></i> Edit Profile
+        </a>
+        <a href="{% url 'blog:blog_create' %}" class="btn btn-secondary">
+            <i class="fa-solid fa-pen"></i> New Post
+        </a>
+    </div>
+</div>
+{% endblock %}

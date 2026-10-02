@@ -1,146 +1,174 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import get_user_model
-from django.contrib.auth import authenticate, login, logout
-from django.contrib import auth
+from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from .models import CustomUser
 import re
-# Create your views here.
-def user_registration(request):
-    User = get_user_model()
 
+User = get_user_model()
+
+def user_registration(request):
+    if request.user.is_authenticated:
+        return redirect('home')
 
     if request.method == 'POST':
-        username = request.POST.get('username')
-        first_name = request.POST.get('first_name')
-        last_name= request.POST.get('last_name')
-        email = request.POST.get('email')
-        phone_number = request.POST.get('phone_number')
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
+        username = request.POST.get('username', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        phone_number = request.POST.get('phone_number', '').strip()
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
         profile_picture = request.FILES.get('profile_picture')
 
-        if not re.match(r'^[6-9]\d{9}$', phone_number):
-            messages.info(request, 'Enter valid 10-digit phone number')
-            return redirect('register')
+        # Form Validations
+        if not username or not email or not password:
+            messages.error(request, 'Username, Email, and Password are required.')
+            return render(request, "user_authentication/register.html")
 
-        if password==confirm_password:
-            if User.objects.filter(username=username).exists():
-                messages.info(request,'this username already exist')
-                return redirect('register')
+        if phone_number and not re.match(r'^[6-9]\d{9}$', phone_number):
+            messages.error(request, 'Please enter a valid 10-digit phone number starting with 6-9.')
+            return render(request, "user_authentication/register.html")
 
-            elif User.objects.filter(email=email).exists():
-                messages.info(request,'this email already exist')
-                return redirect('register')
+        if password != confirm_password:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, "user_authentication/register.html")
 
-            elif User.objects.filter(first_name=first_name).exists():
-                messages.info(request,'this first_name already exist')
-                return redirect('register')
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'This username is already taken.')
+            return render(request, "user_authentication/register.html")
 
-            else:
-                user = User.objects.create_user(username=username,first_name=first_name,last_name=last_name,email=email,password=password
-                                                ,phone_number=phone_number,profile_picture=profile_picture)
-                user.save()
-                return redirect('login')
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'This email address is already registered.')
+            return render(request, "user_authentication/register.html")
 
-        else:
-            messages.info(request,'this password is not match')
-            return redirect('register')
+        # Create user first to assign primary key (user.id)
+        user = User.objects.create_user(
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            password=password,
+            phone_number=phone_number,
+        )
+        if profile_picture:
+            user.profile_picture = profile_picture
+            user.save()
 
-    return render(request, "register.html")
+        messages.success(request, 'Registration successful! You can now log in.')
+        return redirect('login')
+
+    return render(request, "user_authentication/register.html")
 
 
 def user_login(request):
+    if request.user.is_authenticated:
+        return redirect('home')
 
-    if request.method=='POST':
-
-        username=request.POST.get('username')
-        password=request.POST.get('password')
-        user=auth.authenticate(username=username,password=password)
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        
+        user = authenticate(username=username, password=password)
 
         if user is not None:
-            auth.login(request,user)
+            login(request, user)
+            messages.success(request, f'Welcome back, {user.get_full_name() or user.username}!')
             return redirect('home')
-
         else:
-            messages.info(request,'please provide correct info')
+            messages.error(request, 'Invalid username or password. Please try again.')
             return redirect('login')
 
-    return render(request,'login.html')
+    return render(request, 'user_authentication/login.html')
+
 
 @login_required(login_url='login')
 def user_logout(request):
-    # auth.logout(request.user)
     logout(request)
+    messages.info(request, 'You have been logged out.')
     return redirect('login')
+
 
 @login_required(login_url='login')
 def user_profile_view(request):
-    user = request.user
-    print("user:", user)
-    return render(request, "user_profile_view.html", {"user_view": request.user})
+    return render(request, "user_authentication/user_profile_view.html", {"user_view": request.user})
+
+
 @login_required(login_url='login')
 def user_profile_edit(request):
     user = request.user
     if request.method == 'POST':
-        username = request.POST.get("username")
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get('last_name')
-        email = request.POST.get("email")
-        phone_number = request.POST.get("phone_number")
+        username = request.POST.get("username", "").strip()
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
+        email = request.POST.get("email", "").strip()
+        phone_number = request.POST.get("phone_number", "").strip()
         profile_picture = request.FILES.get("profile_picture")
+
+        if phone_number and not re.match(r'^[6-9]\d{9}$', phone_number):
+            messages.error(request, 'Please enter a valid 10-digit phone number.')
+            return render(request, "user_authentication/user_edit_profile.html", {"user_edit": user})
+
+        # Check for username / email collisions with other users
+        if User.objects.filter(username=username).exclude(pk=user.pk).exists():
+            messages.error(request, 'This username is already taken by another account.')
+            return render(request, "user_authentication/user_edit_profile.html", {"user_edit": user})
+
+        if User.objects.filter(email=email).exclude(pk=user.pk).exists():
+            messages.error(request, 'This email address is already in use by another account.')
+            return render(request, "user_authentication/user_edit_profile.html", {"user_edit": user})
 
         user.username = username
         user.first_name = first_name
-        user.last_name= last_name
+        user.last_name = last_name
         user.email = email
         user.phone_number = phone_number
-
 
         if profile_picture:
             user.profile_picture = profile_picture
 
-        else:
-            pass
-
         user.save()
+        messages.success(request, 'Your profile has been successfully updated.')
         return redirect("user_view")
 
-    return render(request, "user_edit_profile.html", {"user_edit": user})
+    return render(request, "user_authentication/user_edit_profile.html", {"user_edit": user})
 
 
 def forgot_password_username(request):
     if request.method == "POST":
-        username = request.POST.get("username")
+        username = request.POST.get("username", "").strip()
         try:
             user = CustomUser.objects.get(username=username)
-            print("////",user)
             request.session['reset_username'] = username
             return redirect("reset_password")
         except CustomUser.DoesNotExist:
             messages.error(request, "Username not found.")
-    return render(request, "forgot_password.html")
-
+    return render(request, "user_authentication/forgot_password.html")
 
 
 def reset_password(request):
     username = request.session.get("reset_username")
     if not username:
+        messages.error(request, "Please enter your username first.")
         return redirect("forgot_password")
 
     if request.method == "POST":
-        password = request.POST.get("password")
-        confirm_password = request.POST.get("confirm_password")
+        password = request.POST.get("password", "")
+        confirm_password = request.POST.get("confirm_password", "")
 
         if password != confirm_password:
             messages.error(request, "Passwords do not match.")
             return redirect("reset_password")
 
-        user = CustomUser.objects.get(username=username)
-        user.set_password(password)
-        user.save()
-        messages.success(request, "Password reset successful. Please login.")
-        return redirect("login")
+        try:
+            user = CustomUser.objects.get(username=username)
+            user.set_password(password)
+            user.save()
+            del request.session['reset_username']
+            messages.success(request, "Password reset successful. Please log in with your new password.")
+            return redirect("login")
+        except CustomUser.DoesNotExist:
+            messages.error(request, "User does not exist.")
+            return redirect("forgot_password")
 
-    return render(request, "reset_password.html")
+    return render(request, "user_authentication/reset_password.html")

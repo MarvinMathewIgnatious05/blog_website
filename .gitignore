@@ -1,6 +1,19 @@
+# Environment & IDE
 .env
+.venv/
+env/
+venv/
 .idea/
+.vscode/
+
+# Python Cache & Compiled Files
 __pycache__/
-*/migrations/*
-!*/migrations/__init__.py
- db.sqlite3
+*.py[cod]
+
+# Database & Media Uploads
+db.sqlite3
+media/
+
+# OS System Files
+.DS_Store
+Thumbs.db
