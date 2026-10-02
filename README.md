@@ -1,4 +1,4 @@
-# 🪶 BlogVerse - Production-Ready Django Blog Platform
+# 🪶 BlogVerse — Django Blog Platform
 
 **BlogVerse** is a modern, feature-rich, and secure blog publishing platform built with **Django**, **Python**, and modern frontend technologies. It features a complete user authentication system, structured user-bound media storage architecture, interactive rich-text publishing editor, category & tag organization, and responsive design.
 
