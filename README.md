@@ -4,6 +4,12 @@
 
 ---
 
+## 🌐 Live Demo
+
+🚧 **Coming Soon** — The project is currently under active development and has not been deployed yet.
+
+---
+
 ## ✨ Features & Architecture Highlights
 
 ### 🛡️ 1. Authentication & Profile Management
